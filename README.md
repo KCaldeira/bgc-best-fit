@@ -4,30 +4,30 @@ This project fits time series data to a convolution model with an exponential de
 
 ## Problem Statement
 
-Given two time series x(t) and y(t), we assume y(t) arises from a convolution:
+Given two time series T(t) (temperature) and y(t) (GPP), we assume y(t) arises from a convolution:
 
 ```
-y(t) ≈ ∫ K_τ(t-s) f(x(s)) ds
+y(t) ≈ ∫ K_τ(t-s) h(T(s)) ds
 ```
 
 where K_τ(u) = (1/τ) exp(-u/τ) is an exponential decay kernel.
 
 The goal is to estimate:
 1. **τ (tau)**: The decay time constant (in years)
-2. **f(x)**: The unknown function relating x to the "instantaneous" effect
+2. **h(T)**: The unknown function relating temperature to the "instantaneous" effect on GPP
 
 ## Key Insight
 
 For an exponential kernel, the convolution is equivalent to a first-order ODE:
 
 ```
-τ * dy/dt + y = f(x(t))
+τ * dy/dt + y = h(T(t))
 ```
 
 In discrete time with step Δt=1 year:
 
 ```
-y_t = φ * y_{t-1} + (1-φ) * f(x_t)
+y_t = φ * y_{t-1} + (1-φ) * h(T_t)
 ```
 
 where φ = exp(-Δt/τ) = exp(-1/τ).
@@ -35,10 +35,10 @@ where φ = exp(-Δt/τ) = exp(-1/τ).
 Rearranging:
 
 ```
-z_{φ,t} = (y_t - φ * y_{t-1}) / (1-φ) ≈ f(x_t)
+z_{φ,t} = (y_t - φ * y_{t-1}) / (1-φ) ≈ h(T_t)
 ```
 
-So for each candidate τ, we can compute z and check whether it's a simple function of x.
+So for each candidate τ, we can compute z and check whether it's a simple function of T.
 
 ## Paired Difference Analysis
 
@@ -52,45 +52,45 @@ By taking the difference (Full - BGC), we isolate the pure **climate/temperature
 
 ### Mathematical Formulation
 
-We assume both scenarios follow the same convolution model with the same function f():
+We assume both scenarios follow the same convolution model with the same function h():
 
 ```
-For Full scenario:   τ * d(GPP_full)/dt + GPP_full = f(tas_full)
-For BGC scenario:    τ * d(GPP_bgc)/dt  + GPP_bgc  = f(tas_bgc)
+For Full scenario:   τ * d(GPP_full)/dt + GPP_full = h(T_full)
+For BGC scenario:    τ * d(GPP_bgc)/dt  + GPP_bgc  = h(T_bgc)
 ```
 
 Subtracting:
 
 ```
-τ * d(GPP_full - GPP_bgc)/dt + (GPP_full - GPP_bgc) = f(tas_full) - f(tas_bgc)
+τ * d(GPP_full - GPP_bgc)/dt + (GPP_full - GPP_bgc) = h(T_full) - h(T_bgc)
 ```
 
 Let Δy = GPP_full - GPP_bgc. In discrete time:
 
 ```
-z_{φ,t} = (Δy_t - φ * Δy_{t-1}) / (1-φ) = f(tas_full,t) - f(tas_bgc,t)
+z_{φ,t} = (Δy_t - φ * Δy_{t-1}) / (1-φ) = h(T_full,t) - h(T_bgc,t)
 ```
 
-### Fitting the Function f()
+### Fitting the Function h()
 
-Since we're fitting to **differences** f(tas_full) - f(tas_bgc), the constant term in f() cancels out. For example:
+Since we're fitting to **differences** h(T_full) - h(T_bgc), the constant term in h() cancels out. For example:
 
-**Linear:** f(x) = a + b*x
+**Linear:** h(T) = a + b*T
 ```
-f(tas_full) - f(tas_bgc) = b * (tas_full - tas_bgc)
+h(T_full) - h(T_bgc) = b * (T_full - T_bgc)
 ```
 Only `b` can be determined; `a` cancels.
 
-**Quadratic:** f(x) = a + b*x + c*x²
+**Quadratic:** h(T) = a + b*T + c*T²
 ```
-f(tas_full) - f(tas_bgc) = b * (tas_full - tas_bgc) + c * (tas_full² - tas_bgc²)
+h(T_full) - h(T_bgc) = b * (T_full - T_bgc) + c * (T_full² - T_bgc²)
 ```
 Parameters `b` and `c` are determined; `a` cancels.
 
-**Cubic:** f(x) = a + b*x + c*x² + d*x³
+**Cubic:** h(T) = a + b*T + c*T² + d*T³
 ```
-f(tas_full) - f(tas_bgc) = b * Δtas + c * Δtas² + d * Δtas³
-where Δtasⁿ = tas_fullⁿ - tas_bgcⁿ
+h(T_full) - h(T_bgc) = b * ΔT + c * ΔT² + d * ΔT³
+where ΔTⁿ = T_fullⁿ - T_bgcⁿ
 ```
 Parameters `b`, `c`, and `d` are determined; `a` cancels.
 
@@ -126,12 +126,12 @@ For each candidate τ:
    z_t = (Δy_t - φ * Δy_{t-1}) / (1-φ)
    ```
 
-3. Pool all (tas_full, tas_bgc, z) data from all regions
+3. Pool all (T_full, T_bgc, z) data from all regions
 
 4. Fit each candidate function to the pooled data:
-   - **Linear:** minimize Σ(z - b*Δtas)²
-   - **Quadratic:** minimize Σ(z - b*Δtas - c*Δtas²)²
-   - **Cubic:** minimize Σ(z - b*Δtas - c*Δtas² - d*Δtas³)²
+   - **Linear:** minimize Σ(z - b*ΔT)²
+   - **Quadratic:** minimize Σ(z - b*ΔT - c*ΔT²)²
+   - **Cubic:** minimize Σ(z - b*ΔT - c*ΔT² - d*ΔT³)²
 
 5. Compute BIC (Bayesian Information Criterion) for each function:
    ```
@@ -139,7 +139,7 @@ For each candidate τ:
    ```
    where n = number of data points, k = number of parameters
 
-### Step 4: Select Best (τ, f) Pair
+### Step 4: Select Best (τ, h) Pair
 
 The function selects the (τ, function) combination with the **lowest BIC**. Lower BIC indicates a better trade-off between fit quality and model complexity.
 
@@ -152,12 +152,12 @@ The function returns a `PairedDiffFitResult` object containing:
 | `tau` | Best-fit decay time (years) |
 | `phi` | Corresponding φ = exp(-1/τ) |
 | `best_function` | The selected function fit object |
-| `best_function.name` | Function form (e.g., "quadratic: a + b*x + c*x²") |
+| `best_function.name` | Function form (e.g., "quadratic: a + b*T + c*T²") |
 | `best_function.params` | Array of fitted parameters [b, c, ...] |
 | `best_function.r_squared` | R² of the fit |
 | `best_function.bic` | BIC value |
-| `best_function.predict_single(x)` | Function to evaluate f(x) |
-| `best_function.predict_diff(x1, x2)` | Function to evaluate f(x1) - f(x2) |
+| `best_function.predict_single(T)` | Function to evaluate h(T) |
+| `best_function.predict_diff(T1, T2)` | Function to evaluate h(T1) - h(T2) |
 | `n_regions` | Number of regions analyzed |
 | `n_total_points` | Total data points pooled |
 | `regions` | List of region names |
@@ -166,14 +166,14 @@ The function returns a `PairedDiffFitResult` object containing:
 
 ### Interpreting the Parameters
 
-For a **quadratic** fit f(x) = b*x + c*x² (constant undetermined):
+For a **quadratic** fit h(T) = b*T + c*T² (constant undetermined):
 
 - **b > 0**: GPP increases with temperature (at low temperatures)
 - **b < 0**: GPP decreases with temperature (at low temperatures)
 - **c < 0**: Diminishing returns or optimum temperature (concave down)
 - **c > 0**: Accelerating response (concave up)
 
-The function f(tas) shows how GPP responds to temperature. Since the constant `a` is undetermined, only the **shape** of f() matters, not its absolute level.
+The function h(T) shows how GPP responds to temperature. Since the constant `a` is undetermined, only the **shape** of h() matters, not its absolute level.
 
 ## Installation
 
@@ -182,6 +182,44 @@ cd /path/to/bgc-best-fit
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+```
+
+## Available Models and Scenarios
+
+### Climate Models
+
+| Model | Description |
+|-------|-------------|
+| `ACCESS-ESM1-5` | Australian Community Climate and Earth System Simulator |
+| `CNRM-ESM2-1` | Centre National de Recherches Météorologiques Earth System Model |
+| `MIROC-ES2L` | Model for Interdisciplinary Research on Climate (low resolution) |
+
+### Scenarios
+
+| Scenario | Paired BGC Scenario | Description |
+|----------|---------------------|-------------|
+| `historical` | `hist-bgc` | Historical period (1850-2014) |
+| `ssp585` | `ssp585-bgc` | Future projection SSP5-8.5 (2015-2100) |
+
+- **Full scenarios** (`historical`, `ssp585`): CO2 affects both climate and plant physiology
+- **BGC scenarios** (`hist-bgc`, `ssp585-bgc`): CO2 affects only plant physiology (climate held constant)
+
+### Available Data Files
+
+```
+data/input/
+├── ACCESS-ESM1-5_historical.csv
+├── ACCESS-ESM1-5_hist-bgc.csv
+├── ACCESS-ESM1-5_ssp585.csv
+├── ACCESS-ESM1-5_ssp585-bgc.csv
+├── CNRM-ESM2-1_historical.csv
+├── CNRM-ESM2-1_hist-bgc.csv
+├── CNRM-ESM2-1_ssp585.csv
+├── CNRM-ESM2-1_ssp585-bgc.csv
+├── MIROC-ES2L_historical.csv
+├── MIROC-ES2L_hist-bgc.csv
+├── MIROC-ES2L_ssp585.csv
+└── MIROC-ES2L_ssp585-bgc.csv
 ```
 
 ## Command-Line Usage
@@ -200,15 +238,6 @@ python run_analysis.py CNRM-ESM2-1 ssp585
 python run_analysis.py MIROC-ES2L historical --tau-min 0.01 --tau-max 50
 ```
 
-**Available models:**
-- `ACCESS-ESM1-5`
-- `CNRM-ESM2-1`
-- `MIROC-ES2L`
-
-**Available scenarios:**
-- `historical` (pairs with `hist-bgc`)
-- `ssp585` (pairs with `ssp585-bgc`)
-
 **Output files:**
 - `data/output/paired_diff_{model}_{scenario}.png` - diagnostic figure
 - `data/output/paired_diff_{model}_{scenario}_summary.csv` - fit results
@@ -220,8 +249,8 @@ python run_analysis.py --help
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `--x-col` | `tas` | Column for x(t) |
-| `--y-col` | `gpp` | Column for y(t) |
+| `--x-col` | `tas` | Column for T(t) (temperature) |
+| `--y-col` | `gpp` | Column for y(t) (GPP) |
 | `--tau-min` | `0.1` | Min τ (decay time) in years |
 | `--tau-max` | `100.0` | Max τ (decay time) in years |
 | `--n-tau` | `100` | Number of τ values (log-spaced grid) |
@@ -234,7 +263,7 @@ python run_analysis.py --help
 
 The output figure has three panels:
 
-1. **Left: f(tas) vs temperature** - The fitted function showing how GPP responds to temperature. Parameters are shown in the corner.
+1. **Left: h(T) vs temperature** - The fitted function showing how GPP responds to temperature. Parameters are shown in the corner.
 
 2. **Middle: BIC vs τ** - Model selection plot showing BIC for each function type across τ values. Lower BIC is better. The best point is marked.
 
@@ -284,13 +313,13 @@ print(f"Best function: {result.best_function.name}")
 print(f"Parameters: {result.best_function.params}")
 print(f"R²: {result.best_function.r_squared:.4f}")
 
-# Evaluate f(tas) at specific temperatures
+# Evaluate h(T) at specific temperatures
 import numpy as np
 temps = np.array([10, 15, 20, 25, 30])
-f_values = result.best_function.predict_single(temps)
-print(f"f(tas) at {temps}: {f_values}")
+h_values = result.best_function.predict_single(temps)
+print(f"h(T) at {temps}: {h_values}")
 
-# Evaluate f(tas_full) - f(tas_bgc)
+# Evaluate h(T_full) - h(T_bgc)
 diff = result.best_function.predict_diff(temps + 2, temps)  # 2°C warming
 print(f"Effect of 2°C warming: {diff}")
 ```
@@ -309,7 +338,7 @@ print(f"Effect of 2°C warming: {diff}")
 - `model`: Climate model name (e.g., ACCESS-ESM1-5)
 - `region`: Country/region name
 - `year`: Year
-- `tas`: Surface air temperature
+- `tas`: Surface air temperature (T)
 - `pr`: Precipitation (already log-transformed)
 - `gpp`: Gross Primary Productivity (already log-transformed)
 
@@ -332,4 +361,4 @@ bgc-best-fit/
 
 ## References
 
-This approach is based on the equivalence between exponential-kernel convolutions and first-order linear ODEs, which allows transforming the joint estimation of (τ, f) into a more tractable grid-search problem.
+This approach is based on the equivalence between exponential-kernel convolutions and first-order linear ODEs, which allows transforming the joint estimation of (τ, h) into a more tractable grid-search problem.
