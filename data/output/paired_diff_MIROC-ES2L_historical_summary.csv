@@ -1,0 +1,2 @@
+model,scenario_full,scenario_bgc,n_regions,n_data_points,tau_years,phi,function,r_squared,bic,param_b,param_c,param_d
+MIROC-ES2L,historical,hist-bgc,110,18040,0.010000000000000004,3.7200759760209944e-44,quadratic: a + b*x + c*x²,0.03916394126569911,-43819.68281381266,0.09647131445116561,-0.0037164014028225967,

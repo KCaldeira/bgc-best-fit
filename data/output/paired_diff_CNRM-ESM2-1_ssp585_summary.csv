@@ -1,0 +1,2 @@
+model,scenario_full,scenario_bgc,n_regions,n_data_points,tau_years,phi,function,r_squared,bic,param_b,param_c,param_d
+CNRM-ESM2-1,ssp585,ssp585-bgc,145,12325,0.010000000000000004,3.7200759760209944e-44,cubic: a + b*x + c*x² + d*x³,0.26029223580122307,-6834.124760158695,0.09801180874318229,-0.00159009895116495,-9.816042011459407e-05

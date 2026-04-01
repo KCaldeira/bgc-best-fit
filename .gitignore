@@ -35,12 +35,6 @@ ENV/
 # Jupyter
 .ipynb_checkpoints/
 
-# Data files
-data/input/
-data/output/
-*.csv
-*.xlsx
-
 # Generated plots
 *.png
 *.pdf

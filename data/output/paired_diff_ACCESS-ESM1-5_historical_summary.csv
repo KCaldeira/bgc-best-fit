@@ -1,0 +1,2 @@
+model,scenario_full,scenario_bgc,n_regions,n_data_points,tau_years,phi,function,r_squared,bic,param_b,param_c,param_d
+ACCESS-ESM1-5,historical,hist-bgc,138,22632,0.010000000000000004,3.7200759760209944e-44,cubic: a + b*x + c*x² + d*x³,0.23653728246582595,-50253.24604964971,0.06279586002483586,-0.00034082865097323446,-0.00023632762223377442
